@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from sqlalchemy import exc
 
 import os
 
@@ -48,17 +49,21 @@ cars_schema = CarSchema()
 # Create a car
 @app.route('/car', methods=['POST'])
 def add_car():
-    name = request.json['name']
-    description = request.json['description']
-    price = request.json['price']
-    colour = request.json['colour']  
+    name = request.get_json(force=True)['name']
+    description = request.get_json(force=True)['description']
+    price = request.get_json(force=True)['price']
+    colour = request.get_json(force=True)['colour']  
 
     new_car = Car(name, description, price, colour) 
 
-    db.session.add(new_car)
-    db.session.commit()
+    try:
+        db.session.add(new_car)
+        db.session.commit()
+        return car_schema.jsonify(new_car)
+    except exc.IntegrityError:
+        return "Integrity error observerd with entry"
 
-    return car_schema.jsonify(new_car)
+    
 
 # Get all cars
 @app.route('/car', methods=['GET'])
